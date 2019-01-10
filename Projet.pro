@@ -8,4 +8,5 @@ SOURCES += main.cpp \
 
 HEADERS += \
     tgaimage.h \
+    geometry.h
 

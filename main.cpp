@@ -1,10 +1,17 @@
 #include <iostream>
+#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
 #include "tgaimage.h"
+#include "geometry.h"
 
 using namespace std;
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red   = TGAColor(255, 0,   0,   255);
+const int height = 800;
+const int width = 800;
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     bool steep = false;
@@ -29,8 +36,37 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
 }
 
 int main() {
-    TGAImage image(100, 100, TGAImage::RGB);
-    line(13, 20, 80, 40, image, white);
+    ifstream file;
+    file.open ("obj/african_head.obj", ifstream::in);
+    if (file.fail()) {
+        cout << "Erreur lors de l'ouverture du fichier" << endl;
+        return 0 ;
+    }
+
+    vector<Vect3> points;
+    string line;
+    while(!file.eof()){
+        getline(file, line);
+        istringstream stream(line.c_str());
+        char t;
+        if (line.compare(0, 2, "v ") == 0) {
+            stream >> t;
+            Vect3 v;
+            for(int i=0;i<3;i++)
+                stream >> v.tab[i];
+            points.push_back(v);
+        }
+    }
+
+    TGAImage image(width, height, TGAImage::RGB);
+    for(vector<Vect3>::iterator it = points.begin(); it != points.end(); ++it) {
+        int x = (it->tab[0]+1.0)*width/2;
+        int y = (it->tab[1]+1.0)*width/2;
+        cout << x << " " << y << endl;
+        image.set(x,y, white);
+    }
+    //line(13, 20, 80, 40, image, white);
+
     image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
     image.write_tga_file("image.tga");
     return 0;
