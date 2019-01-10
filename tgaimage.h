@@ -1,5 +1,5 @@
-#ifndef __IMAGE_H__
-#define __IMAGE_H__
+#ifndef __TGAIMAGE_H__
+#define __TGAIMAGE_H__
 
 #include <fstream>
 
@@ -93,4 +93,4 @@ public:
     void clear();
 };
 
-#endif //__IMAGE_H__
+#endif //__TGAIMAGE_H__
