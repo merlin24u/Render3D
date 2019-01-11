@@ -11,6 +11,11 @@ public :
     }
 };
 
+class Vect3{
+public :
+    float tab[3];
+};
+
 Vect2 operator+(Vect2 const& v,Vect2 const& v2){
     Vect2 res;
     res.tab[0] = v.tab[0] + v2.tab[0];
