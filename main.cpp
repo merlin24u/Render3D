@@ -34,7 +34,38 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     }
 }
 
-void triangle(Vect2 v1,Vect2 v2,Vect2 v3,TGAImage &image, TGAColor color){
+Vect3 barycentric(Vect2* v,Vect2 V){
+    Vect3 b = cross(Vect3(v[2].tab[0]-v[0].tab[0], v[1].tab[0]-v[0].tab[0], v[0].tab[0]-V.tab[0]), Vect3(v[2].tab[1]-v[0].tab[1], v[1].tab[1]-v[0].tab[1], v[0].tab[1]-V.tab[1]));
+    if (b.tab[2]==0)
+        return Vect3(-1,1,1);
+    return Vect3(1.f-(b.tab[0]+b.tab[1])/b.tab[2], b.tab[1]/b.tab[2], b.tab[0]/b.tab[2]);
+}
+
+void triangle(Vect2* v,TGAImage &image, TGAColor color){
+    Vect2 boxmin(image.get_width()-1,  image.get_height()-1);
+    Vect2 boxmax(0, 0);
+    Vect2 tmp = boxmin;
+    for (int i=0; i<3; i++) {
+        for (int j=0; j<2; j++) {
+            boxmin.tab[j] = max(0.f, min(boxmin.tab[j], v[i].tab[j]));
+            boxmax.tab[j] = min(tmp.tab[j], max(boxmax.tab[j], v[i].tab[j]));
+        }
+    }
+
+    //cout << boxmin.tab[0] << " " << boxmin.tab[1] << " / " << boxmax.tab[0] << " " <<  boxmax.tab[1] << endl;
+
+    Vect2 V;
+    for (V.tab[0]=boxmin.tab[0]; V.tab[0]<=boxmax.tab[0]; V.tab[0]++) {
+        for (V.tab[1]=boxmin.tab[1]; V.tab[1]<=boxmax.tab[1]; V.tab[1]++) {
+            Vect3 bc_screen  = barycentric(v, V);
+            if (bc_screen.tab[0]<0 || bc_screen.tab[1]<0 || bc_screen.tab[2]<0)
+                continue;
+            image.set(V.tab[0], V.tab[1], color);
+        }
+    }
+}
+
+void triangle_old(Vect2 v1,Vect2 v2,Vect2 v3,TGAImage &image, TGAColor color){
     if(v1.tab[1]==v2.tab[1] && v1.tab[1]==v3.tab[1]) return;
     if(v1.tab[1]>v2.tab[1])
         swap(v1,v2);
@@ -90,7 +121,6 @@ int main(int argc, char** argv) {
             for(int i=0;i<3;i++){
                 stream >> index >> t >> t2 >> t >> t2;
                 v.tab[i] = index-1;
-
             }
             faces.push_back(v);
         }
@@ -103,7 +133,8 @@ int main(int argc, char** argv) {
             Vect2 v = points[it->tab[i]];
             tab[i] = Vect2((v.tab[0]+1.0)*width/2,(v.tab[1]+1.0)*height/2);
         }
-        triangle(tab[0],tab[1],tab[2],image,TGAColor(rand()%255, rand()%255, rand()%255, 255));
+        //triangle_old(tab[0],tab[1],tab[2],image,TGAColor(rand()%255, rand()%255, rand()%255, 255));
+        triangle(tab,image,TGAColor(rand()%255, rand()%255, rand()%255, 255));
     }
 
     image.flip_vertically(); // i want to have the origin at the left bottom corner of the image

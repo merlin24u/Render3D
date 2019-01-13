@@ -5,6 +5,7 @@ CONFIG -= qt
 
 SOURCES += main.cpp \
     tgaimage.cpp \
+    geometry.cpp
 
 HEADERS += \
     tgaimage.h \
