@@ -1,20 +1,18 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
-#include <vector>
-
 class Vect2{
 public :
     float tab[2];
     Vect2(){}
-    Vect2(int x,int y);
+    Vect2(float x,float y);
 };
 
 class Vect3{
 public :
     float tab[3];
     Vect3(){}
-    Vect3(int x,int y,int z);
+    Vect3(float x,float y,float z);
 };
 
 Vect3 cross(Vect3 v1,Vect3 v2);

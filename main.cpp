@@ -52,8 +52,6 @@ void triangle(Vect2* v,TGAImage &image, TGAColor color){
         }
     }
 
-    //cout << boxmin.tab[0] << " " << boxmin.tab[1] << " / " << boxmax.tab[0] << " " <<  boxmax.tab[1] << endl;
-
     Vect2 V;
     for (V.tab[0]=boxmin.tab[0]; V.tab[0]<=boxmax.tab[0]; V.tab[0]++) {
         for (V.tab[1]=boxmin.tab[1]; V.tab[1]<=boxmax.tab[1]; V.tab[1]++) {

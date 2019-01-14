@@ -1,11 +1,11 @@
 #include "geometry.h"
 
-Vect2::Vect2(int x,int y){
+Vect2::Vect2(float x,float y){
     tab[0] = x;
     tab[1] = y;
 }
 
-Vect3::Vect3(int x,int y,int z){
+Vect3::Vect3(float x,float y,float z){
     tab[0] = x;
     tab[1] = y;
     tab[2] = z;
