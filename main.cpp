@@ -4,6 +4,7 @@
 #include <sstream>
 #include <vector>
 #include <cmath>
+#include <limits>
 #include "tgaimage.h"
 #include "geometry.h"
 
@@ -35,31 +36,37 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     }
 }
 
-Vect3f barycentric(Vect2i* v,Vect2i V){
+Vect3f barycentric(Vect3f* v,Vect3f V){
     Vect3f b = cross(Vect3f(v[2].x-v[0].x, v[1].x-v[0].x, v[0].x-V.x), Vect3f(v[2].y-v[0].y, v[1].y-v[0].y, v[0].y-V.y));
     if (abs(b.z)<1)
         return Vect3f(-1,1,1);
     return Vect3f(1.f-(b.x+b.y)/b.z, b.y/b.z, b.x/b.z);
 }
 
-void triangle(Vect2i* v,TGAImage &image, TGAColor color){
-    Vect2i boxmin(image.get_width()-1,  image.get_height()-1);
-    Vect2i boxmax(0, 0);
-    Vect2i tmp = boxmin;
+void triangle(Vect3f* v,float* zbuffer,TGAImage &image, TGAColor color){
+    Vect2f boxmin(image.get_width()-1,  image.get_height()-1);
+    Vect2f boxmax(0, 0);
+    Vect2f tmp = boxmin;
     for (int i=0; i<3; i++) {
         for (int j=0; j<2; j++) {
-            boxmin.set(j, max(0, min(boxmin.get(j), v[i].get(j))));
+            boxmin.set(j, max(0.f, min(boxmin.get(j), v[i].get(j))));
             boxmax.set(j, min(tmp.get(j), max(boxmax.get(j), v[i].get(j))));
         }
     }
 
-    Vect2i V;
+    Vect3f V;
     for (V.x = boxmin.x; V.x<=boxmax.x; V.x++) {
         for (V.y = boxmin.y; V.y<=boxmax.y; V.y++) {
             Vect3f bc_screen  = barycentric(v, V);
             if (bc_screen.x<0 || bc_screen.y<0 || bc_screen.z<0)
                 continue;
-            image.set(V.x, V.y, color);
+            V.z = 0;
+            for(int i=0;i<3;i++)
+                V.z+=v[i].z*bc_screen.get(i);
+            if (zbuffer[int(V.x+V.y*width)]<V.z) {
+                zbuffer[int(V.x+V.y*width)] = V.z;
+                image.set(V.x, V.y, color);
+            }
         }
     }
 }
@@ -126,24 +133,29 @@ int main(int argc, char** argv) {
         }
     }
 
+    float *zbuffer = new float[width*height];
+    for(int i=0;i<width*height;i++)
+        zbuffer[i] = -numeric_limits<float>::max();
+
     TGAImage image(width, height, TGAImage::RGB);
     for(vector<Vect3f>::iterator it = faces.begin(); it != faces.end(); ++it) {
-        Vect2i tab[3];
-        Vect3f tab2[3];
+        Vect3f tab[3], tab2[3];
         for(int i=0;i<3;i++){
             Vect3f v = points[it->get(i)];
-            tab[i] = Vect2i((v.x+1.)*width/2.,(v.y+1.)*height/2.);
+            tab[i] = Vect3f(int((v.x+1.)*width/2.+.5),int((v.y+1.)*height/2.+.5),v.z);
             tab2[i] = v;
         }
         Vect3f n = cross((tab2[2]-tab2[0]),(tab2[1]-tab2[0]));
         n.normalize();
         n = n * Vect3f(0,0,-1);
         if(n.z>0){
-            triangle(tab,image,TGAColor(n.z*255, n.z*255, n.z*255, 255));
+            triangle(tab,zbuffer,image,TGAColor(n.z*255, n.z*255, n.z*255, 255));
         }
     }
 
     image.flip_vertically(); // origin at the left bottom corner of the image
     image.write_tga_file("image.tga");
+    delete zbuffer;
+    zbuffer = 0;
     return 0;
 }
