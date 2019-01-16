@@ -100,24 +100,22 @@ int main(int argc, char** argv) {
         return 0 ;
     }
 
-    vector<Vect2f> points;
-    vector<Vect3f> faces;
+    vector<Vect3f> points, faces;
     string l;
     while(!file.eof()){
         getline(file, l);
         istringstream stream(l.c_str());
         char t;
+        Vect3f v;
         if (l.compare(0, 2, "v ") == 0) {
             float f;
             stream >> t;
-            Vect2f v;
-            for(int i=0;i<2;i++){
+            for(int i=0;i<3;i++){
                 stream >> f;
                 v.set(i,f);
             }
             points.push_back(v);
         }else if(l.compare(0, 2, "f ") == 0){
-            Vect3f v;
             int index, t2;
             stream >> t;
             for(int i=0;i<3;i++){
@@ -131,12 +129,18 @@ int main(int argc, char** argv) {
     TGAImage image(width, height, TGAImage::RGB);
     for(vector<Vect3f>::iterator it = faces.begin(); it != faces.end(); ++it) {
         Vect2i tab[3];
+        Vect3f tab2[3];
         for(int i=0;i<3;i++){
-            Vect2f v = points[it->get(i)];
+            Vect3f v = points[it->get(i)];
             tab[i] = Vect2i((v.x+1.)*width/2.,(v.y+1.)*height/2.);
+            tab2[i] = v;
         }
-        //triangle_old(tab[0],tab[1],tab[2],image,TGAColor(rand()%255, rand()%255, rand()%255, 255));
-        triangle(tab,image,TGAColor(rand()%255, rand()%255, rand()%255, 255));
+        Vect3f n = cross((tab2[2]-tab2[0]),(tab2[1]-tab2[0]));
+        n.normalize();
+        n = n * Vect3f(0,0,-1);
+        if(n.z>0){
+            triangle(tab,image,TGAColor(n.z*255, n.z*255, n.z*255, 255));
+        }
     }
 
     image.flip_vertically(); // origin at the left bottom corner of the image

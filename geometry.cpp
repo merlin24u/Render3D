@@ -1,3 +1,4 @@
+#include <cmath>
 #include "geometry.h"
 
 Vect2f::Vect2f(float _x,float _y){
@@ -101,3 +102,36 @@ Vect3f cross(Vect3f v1,Vect3f v2){
                   v1.z*v2.x - v1.x*v2.z,
                   v1.x*v2.y - v1.y*v2.x);
 }
+
+void Vect3f::normalize(){
+    *this = (*this) * (1/norm());
+}
+
+float Vect3f::norm(){
+    return sqrt(x*x+y*y+z*z);
+}
+
+Vect3f operator-(Vect3f const& v,Vect3f const& v2){
+    Vect3f res;
+    res.x = v.x - v2.x;
+    res.y = v.y - v2.y;
+    res.z = v.z - v2.z;
+    return res;
+}
+
+Vect3f operator*(Vect3f const& v,float f){
+    Vect3f res;
+    res.x = f*v.x;
+    res.y = f*v.y;
+    res.z = f*v.z;
+    return res;
+}
+
+Vect3f operator*(Vect3f const& v,Vect3f const& v2){
+    Vect3f res;
+    res.x = v.x * v2.x;
+    res.y = v.y * v2.y;
+    res.z = v.z * v2.z;
+    return res;
+}
+
