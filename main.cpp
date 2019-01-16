@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <vector>
+#include <cmath>
 #include "tgaimage.h"
 #include "geometry.h"
 
@@ -34,28 +35,28 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     }
 }
 
-Vect3 barycentric(Vect2* v,Vect2 V){
-    Vect3 b = cross(Vect3(v[2].x-v[0].x, v[1].x-v[0].x, v[0].x-V.x), Vect3(v[2].y-v[0].y, v[1].y-v[0].y, v[0].y-V.y));
+Vect3f barycentric(Vect2i* v,Vect2i V){
+    Vect3f b = cross(Vect3f(v[2].x-v[0].x, v[1].x-v[0].x, v[0].x-V.x), Vect3f(v[2].y-v[0].y, v[1].y-v[0].y, v[0].y-V.y));
     if (abs(b.z)<1)
-        return Vect3(-1,1,1);
-    return Vect3(1.f-(b.x+b.y)/b.z, b.y/b.z, b.x/b.z);
+        return Vect3f(-1,1,1);
+    return Vect3f(1.f-(b.x+b.y)/b.z, b.y/b.z, b.x/b.z);
 }
 
-void triangle(Vect2* v,TGAImage &image, TGAColor color){
-    Vect2 boxmin(image.get_width()-1,  image.get_height()-1);
-    Vect2 boxmax(0, 0);
-    Vect2 tmp = boxmin;
+void triangle(Vect2i* v,TGAImage &image, TGAColor color){
+    Vect2i boxmin(image.get_width()-1,  image.get_height()-1);
+    Vect2i boxmax(0, 0);
+    Vect2i tmp = boxmin;
     for (int i=0; i<3; i++) {
         for (int j=0; j<2; j++) {
-            boxmin.set(j, max(0.f, min(boxmin.get(j), v[i].get(j))));
+            boxmin.set(j, max(0, min(boxmin.get(j), v[i].get(j))));
             boxmax.set(j, min(tmp.get(j), max(boxmax.get(j), v[i].get(j))));
         }
     }
 
-    Vect2 V;
+    Vect2i V;
     for (V.x = boxmin.x; V.x<=boxmax.x; V.x++) {
         for (V.y = boxmin.y; V.y<=boxmax.y; V.y++) {
-            Vect3 bc_screen  = barycentric(v, V);
+            Vect3f bc_screen  = barycentric(v, V);
             if (bc_screen.x<0 || bc_screen.y<0 || bc_screen.z<0)
                 continue;
             image.set(V.x, V.y, color);
@@ -63,7 +64,7 @@ void triangle(Vect2* v,TGAImage &image, TGAColor color){
     }
 }
 
-void triangle_old(Vect2 v1,Vect2 v2,Vect2 v3,TGAImage &image, TGAColor color){
+void triangle_old(Vect2i v1,Vect2i v2,Vect2i v3,TGAImage &image, TGAColor color){
     if(v1.y==v2.y && v1.y==v3.y) return;
     if(v1.y>v2.y)
         swap(v1,v2);
@@ -77,8 +78,8 @@ void triangle_old(Vect2 v1,Vect2 v2,Vect2 v3,TGAImage &image, TGAColor color){
         int segment_h = second_h ? v3.y-v2.y : v2.y-v1.y;
         float alpha = (float)i/total_h;
         float beta  = (float)(i-(second_h ? v2.y-v1.y : 0))/segment_h;
-        Vect2 A = v1 + (v3-v1)*alpha;
-        Vect2 B = second_h ? v2 + (v3-v2)*beta : v1 + (v2-v1)*beta;
+        Vect2i A = v1 + (v3-v1)*alpha;
+        Vect2i B = second_h ? v2 + (v3-v2)*beta : v1 + (v2-v1)*beta;
         if (A.x>B.x)
             swap(A, B);
         for (int j=A.x; j<=B.x; j++) {
@@ -99,8 +100,8 @@ int main(int argc, char** argv) {
         return 0 ;
     }
 
-    vector<Vect2> points;
-    vector<Vect3> faces;
+    vector<Vect2f> points;
+    vector<Vect3f> faces;
     string l;
     while(!file.eof()){
         getline(file, l);
@@ -109,14 +110,14 @@ int main(int argc, char** argv) {
         if (l.compare(0, 2, "v ") == 0) {
             float f;
             stream >> t;
-            Vect2 v;
+            Vect2f v;
             for(int i=0;i<2;i++){
                 stream >> f;
                 v.set(i,f);
             }
             points.push_back(v);
         }else if(l.compare(0, 2, "f ") == 0){
-            Vect3 v;
+            Vect3f v;
             int index, t2;
             stream >> t;
             for(int i=0;i<3;i++){
@@ -128,11 +129,11 @@ int main(int argc, char** argv) {
     }
 
     TGAImage image(width, height, TGAImage::RGB);
-    for(vector<Vect3>::iterator it = faces.begin(); it != faces.end(); ++it) {
-        Vect2 tab[3];
+    for(vector<Vect3f>::iterator it = faces.begin(); it != faces.end(); ++it) {
+        Vect2i tab[3];
         for(int i=0;i<3;i++){
-            Vect2 v = points[it->get(i)];
-            tab[i] = Vect2((v.x+1.)*width/2.,(v.y+1.)*height/2.);
+            Vect2f v = points[it->get(i)];
+            tab[i] = Vect2i((v.x+1.)*width/2.,(v.y+1.)*height/2.);
         }
         //triangle_old(tab[0],tab[1],tab[2],image,TGAColor(rand()%255, rand()%255, rand()%255, 255));
         triangle(tab,image,TGAColor(rand()%255, rand()%255, rand()%255, 255));
