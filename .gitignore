@@ -31,5 +31,5 @@
 *.app
 
 *.pro.user
-*.tga
+output.tga
 *~

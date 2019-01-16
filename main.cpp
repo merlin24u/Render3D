@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
     if(argc==2)
         file.open (argv[1], ifstream::in);
     else
-        file.open ("obj/african_head.obj", ifstream::in);
+        file.open ("obj/african_head/african_head.obj", ifstream::in);
 
     if (file.fail()) {
         cout << "Erreur lors de l'ouverture du fichier" << endl;
@@ -148,13 +148,14 @@ int main(int argc, char** argv) {
         Vect3f n = cross((tab2[2]-tab2[0]),(tab2[1]-tab2[0]));
         n.normalize();
         n = n * Vect3f(0,0,-1);
-        if(n.z>0){
-            triangle(tab,zbuffer,image,TGAColor(n.z*255, n.z*255, n.z*255, 255));
+        float intensity = n.z;
+        if(intensity>0){
+            triangle(tab,zbuffer,image,TGAColor(intensity*255, intensity*255, intensity*255, 255));
         }
     }
 
     image.flip_vertically(); // origin at the left bottom corner of the image
-    image.write_tga_file("image.tga");
+    image.write_tga_file("output.tga");
     delete zbuffer;
     zbuffer = 0;
     return 0;
