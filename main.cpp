@@ -14,6 +14,7 @@ const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red   = TGAColor(255, 0,   0,   255);
 const int height = 800;
 const int width = 800;
+TGAImage textureTGA;
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     bool steep = false;
@@ -43,7 +44,7 @@ Vect3f barycentric(Vect3f* v,Vect3f V){
     return Vect3f(1.f-(b.x+b.y)/b.z, b.y/b.z, b.x/b.z);
 }
 
-void triangle(Vect3f* v,float* zbuffer,TGAImage &image, TGAColor color){
+void triangle(Vect3f* v,float* zbuffer,TGAImage &image, float intensity, Vect3f* texture){
     Vect2f boxmin(image.get_width()-1,  image.get_height()-1);
     Vect2f boxmax(0, 0);
     Vect2f tmp = boxmin;
@@ -65,7 +66,12 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image, TGAColor color){
                 V.z+=v[i].z*bc_screen.get(i);
             if (zbuffer[int(V.x+V.y*width)]<V.z) {
                 zbuffer[int(V.x+V.y*width)] = V.z;
-                image.set(V.x, V.y, color);
+                /*
+                 * détermine texture : à partir des coordonnées barycentre de V
+                 * Puv = bc_screen.x*Auv + bc_screen.y*Buv + bc_screen.z*C
+                 * Pxy = Pu*(width-heigth) de textureTGA
+                */
+                image.set(V.x, V.y, TGAColor(255*intensity, 255*intensity, 255*intensity, 255));
             }
         }
     }
@@ -96,14 +102,12 @@ void triangle_old(Vect2i v1,Vect2i v2,Vect2i v3,TGAImage &image, TGAColor color)
 }
 
 int main(int argc, char** argv) {
-    TGAImage textureTGA;
-    TGA_Header headerTGA;
     ifstream file;
     if(argc==2)
         file.open (argv[1], ifstream::in);
     else{
         file.open ("obj/african_head/african_head.obj", ifstream::in);
-        textureTGA.read_tga_file("obj/african_head/african_head_diffuse.tga",headerTGA);
+        textureTGA.read_tga_file("obj/african_head/african_head_diffuse.tga");
     }
 
     if (file.fail()) {
@@ -111,8 +115,7 @@ int main(int argc, char** argv) {
         return 0 ;
     }
 
-    vector<Vect3f> points, faces, facesT;
-    vector<Vect2f> texture;
+    vector<Vect3f> points, faces, textures,facesT;
     string l;
     while(!file.eof()){
         getline(file, l);
@@ -120,7 +123,6 @@ int main(int argc, char** argv) {
         char trash;
         float f;
         Vect3f v, v2;
-        Vect2f v3;
         if (l.compare(0, 2, "v ") == 0) {
             stream >> trash;
             for(int i=0;i<3;i++){
@@ -133,9 +135,9 @@ int main(int argc, char** argv) {
             stream >> trash;
             for(int i=0;i<2;i++){
                 stream >> f;
-                v3.set(i,f);
+                v.set(i,f);
             }
-            texture.push_back(v3);
+            textures.push_back(v);
         }else if(l.compare(0, 2, "f ") == 0){
             int index, index2, trash2;
             stream >> trash;
@@ -155,20 +157,21 @@ int main(int argc, char** argv) {
 
     TGAImage image(width, height, TGAImage::RGB);
     for(vector<Vect3f>::size_type i = 0; i < faces.size(); i++) {
-        Vect3f tab[3], tab2[3];
+        Vect3f tab[3], tab2[3], tab3[3];
         for(int j=0;j<3;j++){
             Vect3f v = points[faces[i].get(j)];
-            Vect2f pointTexture = texture[faces[i].get(j)];
-            cout << pointTexture.x << " " << pointTexture.y << endl;
+            Vect3f pointTexture = textures[faces[i].get(j)];
             tab[j] = Vect3f(int((v.x+1.)*width/2.+.5),int((v.y+1.)*height/2.+.5),v.z);
             tab2[j] = v;
+            tab3[j] = pointTexture;
         }
+
         Vect3f n = cross((tab2[2]-tab2[0]),(tab2[1]-tab2[0]));
         n.normalize();
         n = n * Vect3f(0,0,-1);
         float intensity = n.z;
         if(intensity>0){
-            triangle(tab,zbuffer,image,TGAColor(intensity*255, intensity*255, intensity*255, 255));
+            triangle(tab,zbuffer,image,intensity,tab3);
         }
     }
 
