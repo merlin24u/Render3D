@@ -149,15 +149,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    vector<Vect2f> myText;
-    for(vector<Vect3f>::iterator it = facesT.begin(); it != facesT.end(); ++it) {
-        Vect2f v;
-        for(int i=0;i<2;i++){
-            v = texture[it->get(i)];
-        }
-        myText.push_back(v);
-    }
-
     float *zbuffer = new float[width*height];
     for(int i=0;i<width*height;i++)
         zbuffer[i] = -numeric_limits<float>::max();
@@ -167,7 +158,7 @@ int main(int argc, char** argv) {
         Vect3f tab[3], tab2[3];
         for(int j=0;j<3;j++){
             Vect3f v = points[faces[i].get(j)];
-            Vect2f pointTexture = myText[i];
+            Vect2f pointTexture = texture[faces[i].get(j)];
             cout << pointTexture.x << " " << pointTexture.y << endl;
             tab[j] = Vect3f(int((v.x+1.)*width/2.+.5),int((v.y+1.)*height/2.+.5),v.z);
             tab2[j] = v;
