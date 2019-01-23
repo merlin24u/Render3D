@@ -96,41 +96,66 @@ void triangle_old(Vect2i v1,Vect2i v2,Vect2i v3,TGAImage &image, TGAColor color)
 }
 
 int main(int argc, char** argv) {
+    TGAImage textureTGA;
+    TGA_Header headerTGA;
     ifstream file;
     if(argc==2)
         file.open (argv[1], ifstream::in);
-    else
+    else{
         file.open ("obj/african_head/african_head.obj", ifstream::in);
+        textureTGA.read_tga_file("obj/african_head/african_head_diffuse.tga",headerTGA);
+    }
 
     if (file.fail()) {
-        cout << "Erreur lors de l'ouverture du fichier" << endl;
+        cout << "Erreur lors de l'ouverture du fichier obj" << endl;
         return 0 ;
     }
 
-    vector<Vect3f> points, faces;
+    vector<Vect3f> points, faces, facesT;
+    vector<Vect2f> texture;
     string l;
     while(!file.eof()){
         getline(file, l);
         istringstream stream(l.c_str());
-        char t;
-        Vect3f v;
+        char trash;
+        float f;
+        Vect3f v, v2;
+        Vect2f v3;
         if (l.compare(0, 2, "v ") == 0) {
-            float f;
-            stream >> t;
+            stream >> trash;
             for(int i=0;i<3;i++){
                 stream >> f;
                 v.set(i,f);
             }
             points.push_back(v);
+        }else if(l.compare(0, 3, "vt ") == 0){
+            stream >> trash;
+            stream >> trash;
+            for(int i=0;i<2;i++){
+                stream >> f;
+                v3.set(i,f);
+            }
+            texture.push_back(v3);
         }else if(l.compare(0, 2, "f ") == 0){
-            int index, t2;
-            stream >> t;
+            int index, index2, trash2;
+            stream >> trash;
             for(int i=0;i<3;i++){
-                stream >> index >> t >> t2 >> t >> t2;
+                stream >> index >> trash >> index2 >> trash >> trash2;
                 v.set(i,index-1);
+                v2.set(i,index2-1);
             }
             faces.push_back(v);
+            facesT.push_back(v2);
         }
+    }
+
+    vector<Vect2f> myText;
+    for(vector<Vect3f>::iterator it = facesT.begin(); it != facesT.end(); ++it) {
+        Vect2f v;
+        for(int i=0;i<2;i++){
+            v = texture[it->get(i)];
+        }
+        myText.push_back(v);
     }
 
     float *zbuffer = new float[width*height];
@@ -138,12 +163,14 @@ int main(int argc, char** argv) {
         zbuffer[i] = -numeric_limits<float>::max();
 
     TGAImage image(width, height, TGAImage::RGB);
-    for(vector<Vect3f>::iterator it = faces.begin(); it != faces.end(); ++it) {
+    for(vector<Vect3f>::size_type i = 0; i < faces.size(); i++) {
         Vect3f tab[3], tab2[3];
-        for(int i=0;i<3;i++){
-            Vect3f v = points[it->get(i)];
-            tab[i] = Vect3f(int((v.x+1.)*width/2.+.5),int((v.y+1.)*height/2.+.5),v.z);
-            tab2[i] = v;
+        for(int j=0;j<3;j++){
+            Vect3f v = points[faces[i].get(j)];
+            Vect2f pointTexture = myText[i];
+            cout << pointTexture.x << " " << pointTexture.y << endl;
+            tab[j] = Vect3f(int((v.x+1.)*width/2.+.5),int((v.y+1.)*height/2.+.5),v.z);
+            tab2[j] = v;
         }
         Vect3f n = cross((tab2[2]-tab2[0]),(tab2[1]-tab2[0]));
         n.normalize();

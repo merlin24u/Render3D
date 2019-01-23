@@ -40,7 +40,7 @@ TGAImage & TGAImage::operator =(const TGAImage &img) {
     return *this;
 }
 
-bool TGAImage::read_tga_file(const char *filename) {
+bool TGAImage::read_tga_file(const char *filename,TGA_Header &header) {
     if (data) delete [] data;
     data = NULL;
     std::ifstream in;
@@ -50,7 +50,7 @@ bool TGAImage::read_tga_file(const char *filename) {
         in.close();
         return false;
     }
-    TGA_Header header;
+    //TGA_Header header;
     in.read((char *)&header, sizeof(header));
     if (!in.good()) {
         in.close();
@@ -91,7 +91,7 @@ bool TGAImage::read_tga_file(const char *filename) {
     if (header.imagedescriptor & 0x10) {
         flip_horizontally();
     }
-    std::cerr << width << "x" << height << "/" << bytespp*8 << "\n";
+    //std::cerr << width << "x" << height << "/" << bytespp*8 << "\n";
     in.close();
     return true;
 }
