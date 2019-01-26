@@ -1,12 +1,8 @@
 #include <cmath>
+#include <ostream>
 #include "geometry.h"
 
 Vect2f::Vect2f(float _x,float _y){
-    x = _x;
-    y = _y;
-}
-
-Vect2i::Vect2i(int _x, int _y){
     x = _x;
     y = _y;
 }
@@ -39,30 +35,6 @@ void Vect2f::set(unsigned int i, float f){
     }
 }
 
-int Vect2i::get(unsigned int i){
-    switch (i) {
-    case 0:
-        return x;
-    case 1:
-        return y;
-    default:
-        return -1;
-    }
-}
-
-void Vect2i::set(unsigned int i, int v){
-    switch (i) {
-    case 0:
-        x = v;
-        break;
-    case 1:
-        y = v;
-        break;
-    default:
-        break;
-    }
-}
-
 float Vect3f::get(unsigned int i){
     if(i==2)
         return z;
@@ -74,27 +46,6 @@ void Vect3f::set(unsigned int i, float f){
     if(i==2)
         z = f;
     else Vect2f::set(i,f);
-}
-
-Vect2i operator+(Vect2i const& v,Vect2i const& v2){
-    Vect2i res;
-    res.x = v.x + v2.x;
-    res.y = v.y + v2.y;
-    return res;
-}
-
-Vect2i operator-(Vect2i const& v,Vect2i const& v2){
-    Vect2i res;
-    res.x = v.x - v2.x;
-    res.y = v.y - v2.y;
-    return res;
-}
-
-Vect2i operator*(Vect2i const& v,float f){
-    Vect2i res;
-    res.x = f*v.x;
-    res.y = f*v.y;
-    return res;
 }
 
 Vect3f cross(Vect3f v1,Vect3f v2){
@@ -119,6 +70,14 @@ Vect3f operator-(Vect3f const& v,Vect3f const& v2){
     return res;
 }
 
+Vect3f operator+(Vect3f const& v,Vect3f const& v2){
+    Vect3f res;
+    res.x = v.x + v2.x;
+    res.y = v.y + v2.y;
+    res.z = v.z + v2.z;
+    return res;
+}
+
 Vect3f operator*(Vect3f const& v,float f){
     Vect3f res;
     res.x = f*v.x;
@@ -135,3 +94,12 @@ Vect3f operator*(Vect3f const& v,Vect3f const& v2){
     return res;
 }
 
+std::ostream& operator<<(std::ostream &flux,Vect2f const& v){
+    flux << v.x << " " << v.y;
+    return flux;
+}
+
+std::ostream& operator<<(std::ostream &flux,Vect3f const& v){
+    flux << static_cast<const Vect2f&>(v) << " " << v.z;
+    return flux;
+}

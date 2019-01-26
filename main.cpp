@@ -11,7 +11,7 @@
 using namespace std;
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
-const TGAColor red   = TGAColor(255, 0,   0,   255);
+const TGAColor red = TGAColor(255, 0,   0,   255);
 const int height = 800;
 const int width = 800;
 TGAImage textureTGA;
@@ -39,9 +39,10 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
 
 Vect3f barycentric(Vect3f* v,Vect3f V){
     Vect3f b = cross(Vect3f(v[2].x-v[0].x, v[1].x-v[0].x, v[0].x-V.x), Vect3f(v[2].y-v[0].y, v[1].y-v[0].y, v[0].y-V.y));
-    if (abs(b.z)<1)
-        return Vect3f(-1,1,1);
-    return Vect3f(1.f-(b.x+b.y)/b.z, b.y/b.z, b.x/b.z);
+    if (abs(b.z)>1e-2)
+        return Vect3f(1.f-(b.x+b.y)/b.z, b.y/b.z, b.x/b.z);
+    else
+        return Vect3f(-1,1,1); // triangle is degenerate
 }
 
 void triangle(Vect3f* v,float* zbuffer,TGAImage &image, float intensity, Vect3f* texture){
@@ -55,59 +56,37 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image, float intensity, Vect3f*
         }
     }
 
-    Vect3f V;
+    Vect3f V,t;
     for (V.x = boxmin.x; V.x<=boxmax.x; V.x++) {
         for (V.y = boxmin.y; V.y<=boxmax.y; V.y++) {
-            Vect3f bc_screen  = barycentric(v, V);
-            if (bc_screen.x<0 || bc_screen.y<0 || bc_screen.z<0)
+            Vect3f bc  = barycentric(v, V);
+            if (bc.x<0 || bc.y<0 || bc.z<0)
                 continue;
             V.z = 0;
             for(int i=0;i<3;i++)
-                V.z+=v[i].z*bc_screen.get(i);
+                V.z+=v[i].z*bc.get(i);
             if (zbuffer[int(V.x+V.y*width)]<V.z) {
                 zbuffer[int(V.x+V.y*width)] = V.z;
-                /*
-                 * détermine texture : à partir des coordonnées barycentre de V
-                 * Puv = bc_screen.x*Auv + bc_screen.y*Buv + bc_screen.z*C
-                 * Pxy = Pu*(width-heigth) de textureTGA
-                */
-                image.set(V.x, V.y, TGAColor(255*intensity, 255*intensity, 255*intensity, 255));
+                t.x = bc.x*texture[0].x + bc.y*texture[1].x + bc.z*texture[2].x;
+                t.y = bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y;
+                t.x *= textureTGA.get_width();
+                t.y *= textureTGA.get_height();
+                image.set(V.x, V.y, textureTGA.get(t.x,t.y)*intensity);
             }
-        }
-    }
-}
-
-void triangle_old(Vect2i v1,Vect2i v2,Vect2i v3,TGAImage &image, TGAColor color){
-    if(v1.y==v2.y && v1.y==v3.y) return;
-    if(v1.y>v2.y)
-        swap(v1,v2);
-    if(v1.y>v3.y)
-        swap(v1,v3);
-    if(v2.y>v3.y)
-        swap(v2,v3);
-    int total_h = v3.y-v1.y;
-    for(int i=0;i<total_h;i++){
-        bool second_h = i>v2.y-v1.y || v2.y==v1.y;
-        int segment_h = second_h ? v3.y-v2.y : v2.y-v1.y;
-        float alpha = (float)i/total_h;
-        float beta  = (float)(i-(second_h ? v2.y-v1.y : 0))/segment_h;
-        Vect2i A = v1 + (v3-v1)*alpha;
-        Vect2i B = second_h ? v2 + (v3-v2)*beta : v1 + (v2-v1)*beta;
-        if (A.x>B.x)
-            swap(A, B);
-        for (int j=A.x; j<=B.x; j++) {
-            image.set(j, v1.y+i, color);
         }
     }
 }
 
 int main(int argc, char** argv) {
     ifstream file;
-    if(argc==2)
+    if(argc==3){
         file.open (argv[1], ifstream::in);
-    else{
+        textureTGA.read_tga_file(argv[2]);
+        textureTGA.flip_vertically();
+    }else{
         file.open ("obj/african_head/african_head.obj", ifstream::in);
         textureTGA.read_tga_file("obj/african_head/african_head_diffuse.tga");
+        textureTGA.flip_vertically();
     }
 
     if (file.fail()) {
@@ -160,7 +139,7 @@ int main(int argc, char** argv) {
         Vect3f tab[3], tab2[3], tab3[3];
         for(int j=0;j<3;j++){
             Vect3f v = points[faces[i].get(j)];
-            Vect3f pointTexture = textures[faces[i].get(j)];
+            Vect3f pointTexture = textures[facesT[i].get(j)];
             tab[j] = Vect3f(int((v.x+1.)*width/2.+.5),int((v.y+1.)*height/2.+.5),v.z);
             tab2[j] = v;
             tab3[j] = pointTexture;

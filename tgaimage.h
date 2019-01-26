@@ -20,8 +20,6 @@ struct TGA_Header {
 };
 #pragma pack(pop)
 
-
-
 struct TGAColor {
     union {
         struct {
@@ -55,6 +53,14 @@ struct TGAColor {
             bytespp = c.bytespp;
             val = c.val;
         }
+        return *this;
+    }
+
+    TGAColor& operator*(float f){
+        this->b *=f;
+        this->g *=f;
+        this->r *=f;
+
         return *this;
     }
 };
