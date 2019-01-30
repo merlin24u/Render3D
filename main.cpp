@@ -14,7 +14,35 @@ const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red = TGAColor(255, 0,   0,   255);
 const int height = 800;
 const int width = 800;
+const int depth = 255;
+Vect3f light(0,0,-1);
+Vect3f camera(0,0,3);
 TGAImage textureTGA;
+
+Vect3f m2v(Matrix m) {
+    return Vect3f(ceil(m[0][0]/m[3][0]), ceil(m[1][0]/m[3][0]), ceil(m[2][0]/m[3][0]));
+}
+
+Matrix v2m(Vect3f v) {
+    Matrix m(4, 1);
+    m[0][0] = v.x;
+    m[1][0] = v.y;
+    m[2][0] = v.z;
+    m[3][0] = 1.f;
+    return m;
+}
+
+Matrix viewport(int x, int y, int w, int h) {
+    Matrix m = Matrix::identity(4);
+    m[0][3] = x+w/2.f;
+    m[1][3] = y+h/2.f;
+    m[2][3] = depth/2.f;
+
+    m[0][0] = w/2.f;
+    m[1][1] = h/2.f;
+    m[2][2] = depth/2.f;
+    return m;
+}
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     bool steep = false;
@@ -59,7 +87,7 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image, float intensity, Vect3f*
     Vect3f V,t;
     for (V.x = boxmin.x; V.x<=boxmax.x; V.x++) {
         for (V.y = boxmin.y; V.y<=boxmax.y; V.y++) {
-            Vect3f bc  = barycentric(v, V);
+            Vect3f bc = barycentric(v, V);
             if (bc.x<0 || bc.y<0 || bc.z<0)
                 continue;
             V.z = 0;
@@ -67,10 +95,8 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image, float intensity, Vect3f*
                 V.z+=v[i].z*bc.get(i);
             if (zbuffer[int(V.x+V.y*width)]<V.z) {
                 zbuffer[int(V.x+V.y*width)] = V.z;
-                t.x = bc.x*texture[0].x + bc.y*texture[1].x + bc.z*texture[2].x;
-                t.y = bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y;
-                t.x *= textureTGA.get_width();
-                t.y *= textureTGA.get_height();
+                t.x = (bc.x*texture[0].x + bc.y*texture[1].x + bc.z*texture[2].x) * textureTGA.get_width();
+                t.y = (bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y) * textureTGA.get_height();
                 image.set(V.x, V.y, textureTGA.get(t.x,t.y)*intensity);
             }
         }
@@ -134,29 +160,31 @@ int main(int argc, char** argv) {
     for(int i=0;i<width*height;i++)
         zbuffer[i] = -numeric_limits<float>::max();
 
+    Matrix Projection = Matrix::identity(4);
+    Projection[3][2] = -1.f/camera.z;
+    Matrix ViewPort = viewport(width/8, height/8, width*3/4, height*3/4);
+
     TGAImage image(width, height, TGAImage::RGB);
     for(vector<Vect3f>::size_type i = 0; i < faces.size(); i++) {
         Vect3f tab[3], tab2[3], tab3[3];
         for(int j=0;j<3;j++){
             Vect3f v = points[faces[i].get(j)];
             Vect3f pointTexture = textures[facesT[i].get(j)];
-            tab[j] = Vect3f(int((v.x+1.)*width/2.+.5),int((v.y+1.)*height/2.+.5),v.z);
+            tab[j] = m2v(ViewPort*Projection*v2m(v));
             tab2[j] = v;
             tab3[j] = pointTexture;
         }
 
         Vect3f n = cross((tab2[2]-tab2[0]),(tab2[1]-tab2[0]));
         n.normalize();
-        n = n * Vect3f(0,0,-1);
+        n = n * light;
         float intensity = n.z;
-        if(intensity>0){
+        if(intensity>0)
             triangle(tab,zbuffer,image,intensity,tab3);
-        }
     }
 
     image.flip_vertically(); // origin at the left bottom corner of the image
     image.write_tga_file("output.tga");
-    delete zbuffer;
-    zbuffer = 0;
+    delete [] zbuffer;
     return 0;
 }

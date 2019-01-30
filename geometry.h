@@ -1,6 +1,8 @@
 #ifndef GEOMETRY_H
 #define GEOMETRY_H
 
+#include <vector>
+
 class Vect2f{
 public :
     float x,y;
@@ -34,5 +36,23 @@ std::ostream& operator<<(std::ostream &flux,Vect2f const& v);
 std::ostream& operator<<(std::ostream &flux,Vect3f const& v);
 
 Vect3f cross(Vect3f v1,Vect3f v2);
+
+// Matrix
+
+const int SIZE_M = 4;
+
+class Matrix{
+    std::vector<std::vector<float>> tab;
+    int nbR, nbC;
+public:
+    Matrix(int r=SIZE_M,int c=SIZE_M);
+    static Matrix identity(int d);
+    int getR();
+    int getC();
+    std::vector<float>& operator[](const int i);
+    Matrix operator*(Matrix const& m);
+};
+
+std::ostream& operator<<(std::ostream &flux,Matrix& v);
 
 #endif // GEOMETRY_H
