@@ -16,8 +16,8 @@ const int height = 800;
 const int width = 800;
 const int depth = 255;
 Vect3f light(0,0,-1);
-Vect3f camera(0,0,3);
-TGAImage textureTGA;
+Vect3f camera(0,0,4);
+TGAImage textureTGA, intensityTGA;
 
 Vect3f m2v(Matrix m) {
     return Vect3f(ceil(m[0][0]/m[3][0]), ceil(m[1][0]/m[3][0]), ceil(m[2][0]/m[3][0]));
@@ -73,7 +73,7 @@ Vect3f barycentric(Vect3f* v,Vect3f V){
         return Vect3f(-1,1,1); // triangle is degenerate
 }
 
-void triangle(Vect3f* v,float* zbuffer,TGAImage &image, float intensity, Vect3f* texture){
+void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture){
     Vect2f boxmin(image.get_width()-1,  image.get_height()-1);
     Vect2f boxmax(0, 0);
     Vect2f tmp = boxmin;
@@ -97,6 +97,10 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image, float intensity, Vect3f*
                 zbuffer[int(V.x+V.y*width)] = V.z;
                 t.x = (bc.x*texture[0].x + bc.y*texture[1].x + bc.z*texture[2].x) * textureTGA.get_width();
                 t.y = (bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y) * textureTGA.get_height();
+                TGAColor colorInt = intensityTGA.get(t.x,t.y);
+                Vect3f color(colorInt.r,colorInt.g,colorInt.b);
+                color.normalize();
+                float intensity = -(color * light);
                 image.set(V.x, V.y, textureTGA.get(t.x,t.y)*intensity);
             }
         }
@@ -105,20 +109,24 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image, float intensity, Vect3f*
 
 int main(int argc, char** argv) {
     ifstream file;
-    if(argc==3){
-        file.open (argv[1], ifstream::in);
-        textureTGA.read_tga_file(argv[2]);
-        textureTGA.flip_vertically();
+    if(argc==2){
+        string arg = argv[1];
+        file.open ("obj/"+arg+"/"+arg+".obj", ifstream::in);
+        textureTGA.read_tga_file(("obj/"+arg+"/"+arg+"_diffuse.tga").c_str());
+        intensityTGA.read_tga_file(("obj/"+arg+"/"+arg+"_nm.tga").c_str());
     }else{
         file.open ("obj/african_head/african_head.obj", ifstream::in);
         textureTGA.read_tga_file("obj/african_head/african_head_diffuse.tga");
-        textureTGA.flip_vertically();
+        intensityTGA.read_tga_file("obj/african_head/african_head_nm.tga");
     }
 
     if (file.fail()) {
         cout << "Erreur lors de l'ouverture du fichier obj" << endl;
         return 0 ;
     }
+
+    textureTGA.flip_vertically();
+    intensityTGA.flip_vertically();
 
     vector<Vect3f> points, faces, textures,facesT;
     string l;
@@ -166,21 +174,14 @@ int main(int argc, char** argv) {
 
     TGAImage image(width, height, TGAImage::RGB);
     for(vector<Vect3f>::size_type i = 0; i < faces.size(); i++) {
-        Vect3f tab[3], tab2[3], tab3[3];
+        Vect3f tabPoint[3], tabText[3];
         for(int j=0;j<3;j++){
             Vect3f v = points[faces[i].get(j)];
-            Vect3f pointTexture = textures[facesT[i].get(j)];
-            tab[j] = m2v(ViewPort*Projection*v2m(v));
-            tab2[j] = v;
-            tab3[j] = pointTexture;
+            tabPoint[j] = m2v(ViewPort*Projection*v2m(v));
+            tabText[j] = textures[facesT[i].get(j)];
         }
 
-        Vect3f n = cross((tab2[2]-tab2[0]),(tab2[1]-tab2[0]));
-        n.normalize();
-        n = n * light;
-        float intensity = n.z;
-        if(intensity>0)
-            triangle(tab,zbuffer,image,intensity,tab3);
+        triangle(tabPoint,zbuffer,image,tabText);
     }
 
     image.flip_vertically(); // origin at the left bottom corner of the image

@@ -87,12 +87,8 @@ Vect3f operator*(Vect3f const& v,float f){
     return res;
 }
 
-Vect3f operator*(Vect3f const& v,Vect3f const& v2){
-    Vect3f res;
-    res.x = v.x * v2.x;
-    res.y = v.y * v2.y;
-    res.z = v.z * v2.z;
-    return res;
+float operator*(Vect3f const& v,Vect3f const& v2){
+    return v.x * v2.x + v.y * v2.y + v.z * v2.z;
 }
 
 std::ostream& operator<<(std::ostream &flux,Vect2f const& v){

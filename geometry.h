@@ -27,7 +27,7 @@ Vect3f operator-(Vect3f const& v,Vect3f const& v2);
 
 Vect3f operator+(Vect3f const& v,Vect3f const& v2);
 
-Vect3f operator*(Vect3f const& v,Vect3f const& v2);
+float operator*(Vect3f const& v,Vect3f const& v2);
 
 Vect3f operator*(Vect3f const& v,float f);
 
