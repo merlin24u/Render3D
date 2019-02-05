@@ -15,34 +15,10 @@ const TGAColor red = TGAColor(255, 0,   0,   255);
 const int height = 800;
 const int width = 800;
 const int depth = 255;
-Vect3f light(0,0,-1);
-Vect3f camera(0,0,4);
+Vect3f light = Vect3f(1,-1,1).normalize();
+Vect3f eye(1,-1,3);
+Vect3f center(0,0,0);
 TGAImage textureTGA, intensityTGA;
-
-Vect3f m2v(Matrix m) {
-    return Vect3f(ceil(m[0][0]/m[3][0]), ceil(m[1][0]/m[3][0]), ceil(m[2][0]/m[3][0]));
-}
-
-Matrix v2m(Vect3f v) {
-    Matrix m(4, 1);
-    m[0][0] = v.x;
-    m[1][0] = v.y;
-    m[2][0] = v.z;
-    m[3][0] = 1.f;
-    return m;
-}
-
-Matrix viewport(int x, int y, int w, int h) {
-    Matrix m = Matrix::identity(4);
-    m[0][3] = x+w/2.f;
-    m[1][3] = y+h/2.f;
-    m[2][3] = depth/2.f;
-
-    m[0][0] = w/2.f;
-    m[1][1] = h/2.f;
-    m[2][2] = depth/2.f;
-    return m;
-}
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     bool steep = false;
@@ -100,8 +76,9 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture){
                 TGAColor colorInt = intensityTGA.get(t.x,t.y);
                 Vect3f color(colorInt.r,colorInt.g,colorInt.b);
                 color.normalize();
-                float intensity = -(color * light);
-                image.set(V.x, V.y, textureTGA.get(t.x,t.y)*intensity);
+                float intensity = color * light;
+                if(intensity>0)
+                    image.set(V.x, V.y, textureTGA.get(t.x,t.y)*intensity);
             }
         }
     }
@@ -122,7 +99,7 @@ int main(int argc, char** argv) {
 
     if (file.fail()) {
         cout << "Erreur lors de l'ouverture du fichier obj" << endl;
-        return 0 ;
+        return 0;
     }
 
     textureTGA.flip_vertically();
@@ -152,12 +129,13 @@ int main(int argc, char** argv) {
             }
             textures.push_back(v);
         }else if(l.compare(0, 2, "f ") == 0){
-            int index, index2, trash2;
+            int index, trash2;
             stream >> trash;
             for(int i=0;i<3;i++){
-                stream >> index >> trash >> index2 >> trash >> trash2;
+                stream >> index;
                 v.set(i,index-1);
-                v2.set(i,index2-1);
+                stream >>trash >> index >> trash >> trash2;
+                v2.set(i,index-1);
             }
             faces.push_back(v);
             facesT.push_back(v2);
@@ -168,16 +146,17 @@ int main(int argc, char** argv) {
     for(int i=0;i<width*height;i++)
         zbuffer[i] = -numeric_limits<float>::max();
 
+    Matrix ModelView = lookat(eye, center, Vect3f(0,1,0));
     Matrix Projection = Matrix::identity(4);
-    Projection[3][2] = -1.f/camera.z;
-    Matrix ViewPort = viewport(width/8, height/8, width*3/4, height*3/4);
+    Projection[3][2] = -1.f/(eye-center).norm();
+    Matrix ViewPort = viewport(width/8, height/8, width*3/4, height*3/4,depth);
 
     TGAImage image(width, height, TGAImage::RGB);
     for(vector<Vect3f>::size_type i = 0; i < faces.size(); i++) {
         Vect3f tabPoint[3], tabText[3];
         for(int j=0;j<3;j++){
             Vect3f v = points[faces[i].get(j)];
-            tabPoint[j] = m2v(ViewPort*Projection*v2m(v));
+            tabPoint[j] = Vect3f(ViewPort*Projection*ModelView*Matrix(v));
             tabText[j] = textures[facesT[i].get(j)];
         }
 

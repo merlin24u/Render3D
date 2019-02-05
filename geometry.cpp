@@ -12,6 +12,12 @@ Vect3f::Vect3f(float _x,float _y,float _z):Vect2f(_x,_y){
     z = _z;
 }
 
+Vect3f::Vect3f(Matrix m){
+    x = std::ceil(m[0][0]/m[3][0]);
+    y = std::ceil(m[1][0]/m[3][0]);
+    z = std::ceil(m[2][0]/m[3][0]);
+}
+
 float Vect2f::get(unsigned int i){
     switch (i) {
     case 0:
@@ -55,8 +61,9 @@ Vect3f cross(Vect3f v1,Vect3f v2){
                   v1.x*v2.y - v1.y*v2.x);
 }
 
-void Vect3f::normalize(){
+Vect3f& Vect3f::normalize(){
     *this = (*this) * (1/norm());
+    return *this;
 }
 
 float Vect3f::norm(){
@@ -103,7 +110,13 @@ std::ostream& operator<<(std::ostream &flux,Vect3f const& v){
 
 // Matrix
 
-Matrix::Matrix(int r, int c):tab(std::vector<std::vector<float> >(r, std::vector<float>(c, 0.f))),nbR(r),nbC(c){}
+Matrix::Matrix(int r, int c): tab(std::vector<std::vector<float> >(r, std::vector<float>(c, 0.f))),nbR(r),nbC(c){}
+
+Matrix::Matrix(Vect3f v): tab(std::vector<std::vector<float> >(4, std::vector<float>(1, 1.f))),nbR(4),nbC(1){
+    tab[0][0] = v.x;
+    tab[1][0] = v.y;
+    tab[2][0] = v.z;
+}
 
 Matrix Matrix::identity(int d){
     Matrix iden = Matrix(d,d);
@@ -114,6 +127,32 @@ Matrix Matrix::identity(int d){
     }
 
     return iden;
+}
+
+Matrix viewport(int x, int y, int w, int h,int depth) {
+    Matrix m = Matrix::identity(4);
+    m[0][3] = x+w/2.f;
+    m[1][3] = y+h/2.f;
+    m[2][3] = depth/2.f;
+
+    m[0][0] = w/2.f;
+    m[1][1] = h/2.f;
+    m[2][2] = depth/2.f;
+    return m;
+}
+
+Matrix lookat(Vect3f eye, Vect3f center, Vect3f up) {
+    Vect3f z = (eye-center).normalize();
+    Vect3f x = (cross(up,z)).normalize();
+    Vect3f y = (cross(z,x)).normalize();
+    Matrix res = Matrix::identity(4);
+    for (int i=0; i<3; i++) {
+        res[0][i] = x.get(i);
+        res[1][i] = y.get(i);
+        res[2][i] = z.get(i);
+        res[i][3] = -center.get(i);
+    }
+    return res;
 }
 
 int Matrix::getR(){
