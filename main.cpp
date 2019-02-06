@@ -15,10 +15,10 @@ const TGAColor red = TGAColor(255, 0,   0,   255);
 const int height = 800;
 const int width = 800;
 const int depth = 255;
-Vect3f light = Vect3f(1,-1,1).normalize();
-Vect3f eye(1,-1,3);
+Vect3f light = Vect3f(1,1,-1).normalize();
+Vect3f eye(1,1,3);
 Vect3f center(0,0,0);
-TGAImage textureTGA, intensityTGA;
+TGAImage textureTGA, intensityTGA, specularTGA;
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     bool steep = false;
@@ -49,6 +49,11 @@ Vect3f barycentric(Vect3f* v,Vect3f V){
         return Vect3f(-1,1,1); // triangle is degenerate
 }
 
+float specular(int x,int y){
+    Vect2f uv(x*specularTGA.get_width(), y*specularTGA.get_height());
+    return specularTGA.get(uv.x, uv.y)[0]/1.f;
+}
+
 void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture){
     Vect2f boxmin(image.get_width()-1,  image.get_height()-1);
     Vect2f boxmax(0, 0);
@@ -73,12 +78,15 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture){
                 zbuffer[int(V.x+V.y*width)] = V.z;
                 t.x = (bc.x*texture[0].x + bc.y*texture[1].x + bc.z*texture[2].x) * textureTGA.get_width();
                 t.y = (bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y) * textureTGA.get_height();
-                TGAColor colorInt = intensityTGA.get(t.x,t.y);
-                Vect3f color(colorInt.r,colorInt.g,colorInt.b);
-                color.normalize();
-                float intensity = color * light;
-                if(intensity>0)
-                    image.set(V.x, V.y, textureTGA.get(t.x,t.y)*intensity);
+                TGAColor normal = intensityTGA.get(t.x,t.y);
+                Vect3f n = Vect3f(normal.r,normal.g,normal.b).normalize();
+                Vect3f r = (n*(n*light*2.f) - light).normalize();
+                float spec = pow(max(0.0f,r.z),specular(t.x,t.y));
+                float intensity = max(0.f,n * light);
+                TGAColor color = textureTGA.get(t.x,t.y);
+                for (int i=0; i<3; i++)
+                    color[i] = min<float>(5 + color[i]*(intensity + .6*spec), 255);
+                image.set(V.x, V.y, color);
             }
         }
     }
@@ -91,10 +99,12 @@ int main(int argc, char** argv) {
         file.open ("obj/"+arg+"/"+arg+".obj", ifstream::in);
         textureTGA.read_tga_file(("obj/"+arg+"/"+arg+"_diffuse.tga").c_str());
         intensityTGA.read_tga_file(("obj/"+arg+"/"+arg+"_nm.tga").c_str());
+        specularTGA.read_tga_file(("obj/"+arg+"/"+arg+"_spec.tga").c_str());
     }else{
         file.open ("obj/african_head/african_head.obj", ifstream::in);
         textureTGA.read_tga_file("obj/african_head/african_head_diffuse.tga");
         intensityTGA.read_tga_file("obj/african_head/african_head_nm.tga");
+        specularTGA.read_tga_file("obj/african_head/african_head_spec.tga");
     }
 
     if (file.fail()) {
@@ -104,6 +114,7 @@ int main(int argc, char** argv) {
 
     textureTGA.flip_vertically();
     intensityTGA.flip_vertically();
+    specularTGA.flip_vertically();
 
     vector<Vect3f> points, faces, textures,facesT;
     string l;
