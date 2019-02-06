@@ -16,9 +16,10 @@ const int height = 800;
 const int width = 800;
 const int depth = 255;
 Vect3f light = Vect3f(1,-1,1).normalize();
-Vect3f eye(1,-1,3);
+Vect3f eye(1,1,3);
 Vect3f center(0,0,0);
 TGAImage textureTGA, intensityTGA;
+Matrix Projection, ModelView;
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     bool steep = false;
@@ -75,10 +76,10 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture){
                 t.y = (bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y) * textureTGA.get_height();
                 TGAColor colorInt = intensityTGA.get(t.x,t.y);
                 Vect3f color(colorInt.r,colorInt.g,colorInt.b);
-                color.normalize();
-                float intensity = color * light;
-                if(intensity>0)
-                    image.set(V.x, V.y, textureTGA.get(t.x,t.y)*intensity);
+                Vect3f c = Vect3f(((Projection*ModelView).inverse().transpose())*Matrix(color)).normalize();
+                Vect3f l = Vect3f((Projection*ModelView)*Matrix(light)).normalize();
+                float intensity = max(0.f,c * l);
+                image.set(V.x, V.y, textureTGA.get(t.x,t.y)*intensity);
             }
         }
     }
@@ -146,8 +147,8 @@ int main(int argc, char** argv) {
     for(int i=0;i<width*height;i++)
         zbuffer[i] = -numeric_limits<float>::max();
 
-    Matrix ModelView = lookat(eye, center, Vect3f(0,1,0));
-    Matrix Projection = Matrix::identity(4);
+    ModelView = lookat(eye, center, Vect3f(0,1,0));
+    Projection = Matrix::identity(4);
     Projection[3][2] = -1.f/(eye-center).norm();
     Matrix ViewPort = viewport(width/8, height/8, width*3/4, height*3/4,depth);
 

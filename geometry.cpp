@@ -129,6 +129,55 @@ Matrix Matrix::identity(int d){
     return iden;
 }
 
+Matrix Matrix::transpose(){
+    Matrix res(nbC, nbR);
+    for(int i=0; i<nbR; i++)
+        for(int j=0; j<nbC; j++)
+            res[j][i] = tab[i][j];
+    return res;
+}
+
+Matrix Matrix::inverse(){
+    assert(nbR==nbC);
+    // augmenting the square matrix with the identity matrix of the same dimensions a => [ai]
+    Matrix result(nbR, nbC*2);
+    for(int i=0; i<nbR; i++)
+        for(int j=0; j<nbC; j++)
+            result[i][j] = tab[i][j];
+    for(int i=0; i<nbR; i++)
+        result[i][i+nbC] = 1;
+    // first pass
+    for (int i=0; i<nbR-1; i++) {
+        // normalize the first row
+        for(int j=result.nbC-1; j>=0; j--)
+            result[i][j] /= result[i][i];
+        for (int k=i+1; k<nbR; k++) {
+            float coeff = result[k][i];
+            for (int j=0; j<result.nbC; j++) {
+                result[k][j] -= result[i][j]*coeff;
+            }
+        }
+    }
+    // normalize the last row
+    for(int j=result.nbC-1; j>=nbR-1; j--)
+        result[nbR-1][j] /= result[nbR-1][nbR-1];
+    // second pass
+    for (int i=nbR-1; i>0; i--) {
+        for (int k=i-1; k>=0; k--) {
+            float coeff = result[k][i];
+            for (int j=0; j<result.nbC; j++) {
+                result[k][j] -= result[i][j]*coeff;
+            }
+        }
+    }
+    // cut the identity matrix back
+    Matrix truncate(nbR, nbC);
+    for(int i=0; i<nbR; i++)
+        for(int j=0; j<nbC; j++)
+            truncate[i][j] = result[i][j+nbC];
+    return truncate;
+}
+
 Matrix viewport(int x, int y, int w, int h,int depth) {
     Matrix m = Matrix::identity(4);
     m[0][3] = x+w/2.f;

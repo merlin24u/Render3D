@@ -48,6 +48,9 @@ public:
     static Matrix identity(int d);
     int getR();
     int getC();
+    Matrix transpose();
+    Matrix inverse();
+
     std::vector<float>& operator[](const int i);
     Matrix operator*(Matrix const& m);
 };
