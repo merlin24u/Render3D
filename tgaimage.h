@@ -2,6 +2,7 @@
 #define __TGAIMAGE_H__
 
 #include <fstream>
+#include <cassert>
 
 #pragma pack(push,1)
 struct TGA_Header {
@@ -62,6 +63,11 @@ struct TGAColor {
         this->r *=f;
 
         return *this;
+    }
+
+    unsigned char& operator[](const int i){
+        assert(i>=0 && i<4);
+        return raw[i];
     }
 };
 
