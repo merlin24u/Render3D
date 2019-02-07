@@ -15,8 +15,8 @@ const TGAColor red = TGAColor(255, 0,   0,   255);
 const int height = 800;
 const int width = 800;
 const int depth = 255;
-Vect3f light = Vect3f(1,-1,1).normalize();
-Vect3f eye(1,-1,3);
+Vect3f light = Vect3f(1,1,1).normalize();
+Vect3f eye(1,0,3);
 Vect3f center(0,0,0);
 TGAImage textureTGA, intensityTGA;
 
@@ -71,14 +71,13 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture){
                 V.z+=v[i].z*bc.get(i);
             if (zbuffer[int(V.x+V.y*width)]<V.z) {
                 zbuffer[int(V.x+V.y*width)] = V.z;
-                t.x = (bc.x*texture[0].x + bc.y*texture[1].x + bc.z*texture[2].x) * textureTGA.get_width();
-                t.y = (bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y) * textureTGA.get_height();
-                TGAColor colorInt = intensityTGA.get(t.x,t.y);
-                Vect3f color(colorInt.r,colorInt.g,colorInt.b);
+                t.x = (bc.x*texture[0].x + bc.y*texture[1].x + bc.z*texture[2].x);
+                t.y = (bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y);
+                TGAColor colorInt = intensityTGA.get(t.x * intensityTGA.get_width(),t.y * intensityTGA.get_height());
+                Vect3f color(colorInt.r/255.f*2.f - 1.f,colorInt.g/255.f*2.f - 1.f,colorInt.b/255.f*2.f - 1.f);
                 color.normalize();
-                float intensity = color * light;
-                if(intensity>0)
-                    image.set(V.x, V.y, textureTGA.get(t.x,t.y)*intensity);
+                float intensity = max(0.f,color * light);
+                image.set(V.x, V.y, textureTGA.get(t.x * textureTGA.get_width(),t.y * textureTGA.get_height())*intensity);
             }
         }
     }
