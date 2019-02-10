@@ -10,14 +10,13 @@
 
 using namespace std;
 
-const TGAColor white = TGAColor(255, 255, 255, 255);
-const TGAColor red = TGAColor(255, 0,   0,   255);
 const int height = 800;
 const int width = 800;
 const int depth = 255;
 Vect3f light = Vect3f(1,1,1).normalize();
-Vect3f eye(1,0,3);
+Vect3f eye(1,1,3);
 Vect3f center(0,0,0);
+Vect3f up(0,1,0);
 TGAImage textureTGA, intensityTGA, specularTGA;
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
@@ -92,30 +91,7 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture){
     }
 }
 
-int main(int argc, char** argv) {
-    ifstream file;
-    if(argc==2){
-        string arg = argv[1];
-        file.open ("obj/"+arg+"/"+arg+".obj", ifstream::in);
-        textureTGA.read_tga_file(("obj/"+arg+"/"+arg+"_diffuse.tga").c_str());
-        intensityTGA.read_tga_file(("obj/"+arg+"/"+arg+"_nm.tga").c_str());
-        specularTGA.read_tga_file(("obj/"+arg+"/"+arg+"_spec.tga").c_str());
-    }else{
-        file.open ("obj/african_head/african_head.obj", ifstream::in);
-        textureTGA.read_tga_file("obj/african_head/african_head_diffuse.tga");
-        intensityTGA.read_tga_file("obj/african_head/african_head_nm.tga");
-        specularTGA.read_tga_file("obj/african_head/african_head_spec.tga");
-    }
-
-    if (file.fail()) {
-        cout << "Erreur lors de l'ouverture du fichier obj" << endl;
-        return 0;
-    }
-
-    textureTGA.flip_vertically();
-    intensityTGA.flip_vertically();
-    specularTGA.flip_vertically();
-
+void render(ifstream &file, TGAImage &image, float* zbuffer){
     vector<Vect3f> points, faces, textures,facesT;
     string l;
     while(!file.eof()){
@@ -153,16 +129,11 @@ int main(int argc, char** argv) {
         }
     }
 
-    float *zbuffer = new float[width*height];
-    for(int i=0;i<width*height;i++)
-        zbuffer[i] = -numeric_limits<float>::max();
-
-    Matrix ModelView = lookat(eye, center, Vect3f(0,1,0));
+    Matrix ModelView = lookat(eye, center, up);
     Matrix Projection = Matrix::identity(4);
     Projection[3][2] = -1.f/(eye-center).norm();
     Matrix ViewPort = viewport(width/8, height/8, width*3/4, height*3/4,depth);
 
-    TGAImage image(width, height, TGAImage::RGB);
     for(vector<Vect3f>::size_type i = 0; i < faces.size(); i++) {
         Vect3f tabPoint[3], tabText[3];
         for(int j=0;j<3;j++){
@@ -172,6 +143,51 @@ int main(int argc, char** argv) {
         }
 
         triangle(tabPoint,zbuffer,image,tabText);
+    }
+}
+
+int main(int argc, char** argv) {
+    ifstream file;
+    if(argc==2){
+        string arg = argv[1];
+        file.open ("obj/"+arg+"/"+arg+".obj", ifstream::in);
+        textureTGA.read_tga_file(("obj/"+arg+"/"+arg+"_diffuse.tga").c_str());
+        intensityTGA.read_tga_file(("obj/"+arg+"/"+arg+"_nm.tga").c_str());
+        specularTGA.read_tga_file(("obj/"+arg+"/"+arg+"_spec.tga").c_str());
+    }else{
+        file.open ("obj/african_head/african_head.obj", ifstream::in);
+        textureTGA.read_tga_file("obj/african_head/african_head_diffuse.tga");
+        intensityTGA.read_tga_file("obj/african_head/african_head_nm.tga");
+        specularTGA.read_tga_file("obj/african_head/african_head_spec.tga");
+    }
+
+    if (file.fail()) {
+        cout << "Erreur lors de l'ouverture du fichier obj" << endl;
+        return 0;
+    }
+
+    textureTGA.flip_vertically();
+    intensityTGA.flip_vertically();
+    specularTGA.flip_vertically();
+
+    float *zbuffer = new float[width*height];
+    for(int i=0;i<width*height;i++)
+        zbuffer[i] = -numeric_limits<float>::max();
+
+    TGAImage image(width, height, TGAImage::RGB);
+    render(file, image, zbuffer);
+    file.close();
+    if(argc<2){
+        file.open ("obj/african_head/african_head_eye_inner.obj", ifstream::in);
+        textureTGA.read_tga_file("obj/african_head/african_head_eye_inner_diffuse.tga");
+        intensityTGA.read_tga_file("obj/african_head/african_head_eye_inner_nm.tga");
+        specularTGA.read_tga_file("obj/african_head/african_head_eye_inner_spec.tga");
+        if (file.fail()) {
+            cout << "Erreur lors de l'ouverture du fichier obj" << endl;
+            return 0;
+        }
+        render(file, image, zbuffer);
+        file.close();
     }
 
     image.flip_vertically(); // origin at the left bottom corner of the image
