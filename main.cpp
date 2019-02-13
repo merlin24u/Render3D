@@ -7,6 +7,7 @@
 #include <limits>
 #include "tgaimage.h"
 #include "geometry.h"
+#include "shader.h"
 
 using namespace std;
 
@@ -18,6 +19,24 @@ Vect3f eye(2,0,3);
 Vect3f center(0,0,0);
 Vect3f up(0,1,0);
 TGAImage textureTGA, intensityTGA, specularTGA;
+
+float specular(int x, int y);
+
+class Shader : public IShader {
+     void fragment(Vect3f bc, TGAColor &color, Vect3f *texture){
+        Vect3f t;
+        t.x = (bc.x*texture[0].x + bc.y*texture[1].x + bc.z*texture[2].x);
+        t.y = (bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y);
+        TGAColor normal = intensityTGA.get(t.x * intensityTGA.get_width(),t.y * intensityTGA.get_height());
+        Vect3f n = Vect3f(normal.r/255.f*2.f - 1.f,normal.g/255.f*2.f - 1.f,normal.b/255.f*2.f - 1.f).normalize();
+        Vect3f r = (n*(n*light*2.f) - light).normalize();
+        float spec = pow(max(0.0f,r.z),specular(t.x,t.y));
+        float intensity = max(0.f,n * light);
+        color = textureTGA.get(t.x * textureTGA.get_width(),t.y * textureTGA.get_height());
+        for (int i=0; i<3; i++)
+            color[i] = min<float>(5 + color[i]*(intensity + .6*spec), 255);
+    }
+};
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     bool steep = false;
@@ -53,21 +72,7 @@ float specular(int x,int y){
     return specularTGA.get(uv.x, uv.y)[0]/1.f;
 }
 
-void shader(Vect3f bc, TGAColor &color,Vect3f* texture){
-    Vect3f t;
-    t.x = (bc.x*texture[0].x + bc.y*texture[1].x + bc.z*texture[2].x);
-    t.y = (bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y);
-    TGAColor normal = intensityTGA.get(t.x * intensityTGA.get_width(),t.y * intensityTGA.get_height());
-    Vect3f n = Vect3f(normal.r/255.f*2.f - 1.f,normal.g/255.f*2.f - 1.f,normal.b/255.f*2.f - 1.f).normalize();
-    Vect3f r = (n*(n*light*2.f) - light).normalize();
-    float spec = pow(max(0.0f,r.z),specular(t.x,t.y));
-    float intensity = max(0.f,n * light);
-    color = textureTGA.get(t.x * textureTGA.get_width(),t.y * textureTGA.get_height());
-    for (int i=0; i<3; i++)
-        color[i] = min<float>(5 + color[i]*(intensity + .6*spec), 255);
-}
-
-void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture){
+void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture,IShader &shader){
     Vect2f boxmin(image.get_width()-1,  image.get_height()-1);
     Vect2f boxmax(0, 0);
     Vect2f tmp = boxmin;
@@ -90,7 +95,7 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture){
             if (zbuffer[int(V.x+V.y*width)]<V.z) {
                 zbuffer[int(V.x+V.y*width)] = V.z;
                 TGAColor color;
-                shader(bc,color,texture);
+                shader.fragment(bc,color,texture);
                 image.set(V.x, V.y, color);
             }
         }
@@ -139,6 +144,7 @@ void render(ifstream &file, TGAImage &image, float* zbuffer){
     Matrix Projection = Matrix::identity(4);
     Projection[3][2] = -1.f/(eye-center).norm();
     Matrix ViewPort = viewport(width/8, height/8, width*3/4, height*3/4,depth);
+    Shader shader;
 
     for(vector<Vect3f>::size_type i = 0; i < faces.size(); i++) {
         Vect3f tabPoint[3], tabText[3];
@@ -148,7 +154,7 @@ void render(ifstream &file, TGAImage &image, float* zbuffer){
             tabText[j] = textures[facesT[i].get(j)];
         }
 
-        triangle(tabPoint,zbuffer,image,tabText);
+        triangle(tabPoint,zbuffer,image,tabText,shader);
     }
 }
 

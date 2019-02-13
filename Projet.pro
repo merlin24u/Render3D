@@ -9,5 +9,6 @@ SOURCES += main.cpp \
 
 HEADERS += \
     tgaimage.h \
-    geometry.h
+    geometry.h \
+    shader.h
 
