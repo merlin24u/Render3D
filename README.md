@@ -6,3 +6,5 @@
 
 ### Depot : https://github.com/ssloy/tinyrenderer
 
+![alt text](https://raw.githubusercontent.com/merlin24/Render3D/master/output.tga)
+
