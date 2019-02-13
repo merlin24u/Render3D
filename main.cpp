@@ -14,7 +14,7 @@ const int height = 800;
 const int width = 800;
 const int depth = 255;
 Vect3f light = Vect3f(1,1,1).normalize();
-Vect3f eye(1,1,3);
+Vect3f eye(2,0,3);
 Vect3f center(0,0,0);
 Vect3f up(0,1,0);
 TGAImage textureTGA, intensityTGA, specularTGA;
@@ -53,6 +53,20 @@ float specular(int x,int y){
     return specularTGA.get(uv.x, uv.y)[0]/1.f;
 }
 
+void shader(Vect3f bc, TGAColor &color,Vect3f* texture){
+    Vect3f t;
+    t.x = (bc.x*texture[0].x + bc.y*texture[1].x + bc.z*texture[2].x);
+    t.y = (bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y);
+    TGAColor normal = intensityTGA.get(t.x * intensityTGA.get_width(),t.y * intensityTGA.get_height());
+    Vect3f n = Vect3f(normal.r/255.f*2.f - 1.f,normal.g/255.f*2.f - 1.f,normal.b/255.f*2.f - 1.f).normalize();
+    Vect3f r = (n*(n*light*2.f) - light).normalize();
+    float spec = pow(max(0.0f,r.z),specular(t.x,t.y));
+    float intensity = max(0.f,n * light);
+    color = textureTGA.get(t.x * textureTGA.get_width(),t.y * textureTGA.get_height());
+    for (int i=0; i<3; i++)
+        color[i] = min<float>(5 + color[i]*(intensity + .6*spec), 255);
+}
+
 void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture){
     Vect2f boxmin(image.get_width()-1,  image.get_height()-1);
     Vect2f boxmax(0, 0);
@@ -64,7 +78,7 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture){
         }
     }
 
-    Vect3f V,t;
+    Vect3f V;
     for (V.x = boxmin.x; V.x<=boxmax.x; V.x++) {
         for (V.y = boxmin.y; V.y<=boxmax.y; V.y++) {
             Vect3f bc = barycentric(v, V);
@@ -75,16 +89,8 @@ void triangle(Vect3f* v,float* zbuffer,TGAImage &image,Vect3f* texture){
                 V.z+=v[i].z*bc.get(i);
             if (zbuffer[int(V.x+V.y*width)]<V.z) {
                 zbuffer[int(V.x+V.y*width)] = V.z;
-                t.x = (bc.x*texture[0].x + bc.y*texture[1].x + bc.z*texture[2].x);
-                t.y = (bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y);
-                TGAColor normal = intensityTGA.get(t.x * intensityTGA.get_width(),t.y * intensityTGA.get_height());
-                Vect3f n = Vect3f(normal.r/255.f*2.f - 1.f,normal.g/255.f*2.f - 1.f,normal.b/255.f*2.f - 1.f).normalize();
-                Vect3f r = (n*(n*light*2.f) - light).normalize();
-                float spec = pow(max(0.0f,r.z),specular(t.x,t.y));
-                float intensity = max(0.f,n * light);
-                TGAColor color = textureTGA.get(t.x * textureTGA.get_width(),t.y * textureTGA.get_height());
-                for (int i=0; i<3; i++)
-                    color[i] = min<float>(5 + color[i]*(intensity + .6*spec), 255);
+                TGAColor color;
+                shader(bc,color,texture);
                 image.set(V.x, V.y, color);
             }
         }
