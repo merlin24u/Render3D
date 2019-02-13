@@ -15,7 +15,7 @@ const int height = 800;
 const int width = 800;
 const int depth = 255;
 Vect3f light = Vect3f(1,1,1).normalize();
-Vect3f eye(2,0,3);
+Vect3f eye(2,1,3);
 Vect3f center(0,0,0);
 Vect3f up(0,1,0);
 TGAImage textureTGA, intensityTGA, specularTGA;
@@ -23,7 +23,7 @@ TGAImage textureTGA, intensityTGA, specularTGA;
 float specular(int x, int y);
 
 class Shader : public IShader {
-     void fragment(Vect3f bc, TGAColor &color, Vect3f *texture){
+    void fragment(Vect3f bc, TGAColor &color, Vect3f *texture){
         Vect3f t;
         t.x = (bc.x*texture[0].x + bc.y*texture[1].x + bc.z*texture[2].x);
         t.y = (bc.x*texture[0].y + bc.y*texture[1].y + bc.z*texture[2].y);
@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
     TGAImage image(width, height, TGAImage::RGB);
     render(file, image, zbuffer);
     file.close();
-    if(argc<2){
+    if(argc<2 || (argc==2 && string(argv[1])=="african_head")){
         file.open ("obj/african_head/african_head_eye_inner.obj", ifstream::in);
         textureTGA.read_tga_file("obj/african_head/african_head_eye_inner_diffuse.tga");
         intensityTGA.read_tga_file("obj/african_head/african_head_eye_inner_nm.tga");
