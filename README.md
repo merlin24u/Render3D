@@ -6,5 +6,5 @@
 
 ### Depot : https://github.com/ssloy/tinyrenderer
 
-![](https://raw.githubusercontent.com/merlin24/Render3D/master/img/output.png "African_head")
+![](https://raw.githubusercontent.com/merlin24u/Render3D/master/img/output.png "African_head")
 
