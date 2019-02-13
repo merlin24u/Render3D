@@ -15,7 +15,7 @@ const int height = 800;
 const int width = 800;
 const int depth = 255;
 Vect3f light = Vect3f(1,1,1).normalize();
-Vect3f eye(2,1,3);
+Vect3f eye(1,0,3);
 Vect3f center(0,0,0);
 Vect3f up(0,1,0);
 TGAImage textureTGA, intensityTGA, specularTGA;
